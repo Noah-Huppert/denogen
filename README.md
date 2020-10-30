@@ -1,8 +1,8 @@
-# Denogen
-Deno based code generator.
+# Denoguard
+Deno based type guard code generator.
 
 # Table Of Contents
 - [Overview](#overview)
 
 # Overview
-Code generation tool written for DenoJs.
+Type guard code generation tool written for DenoJs.
