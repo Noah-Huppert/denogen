@@ -4,6 +4,7 @@ import {
     ModuleItem,
     Statement,
     TsKeywordType,
+    TsInterfaceDeclaration,
 } from 'https://github.com/nestdotland/deno_swc/raw/master/types/options.ts';
 
 // Parse command line arguments
@@ -84,16 +85,14 @@ interface InterfaceProp {
     kind?: string
 }
 
-for (const i in args.file) {
-    const file = args.file[i];
-
+let guards: string[] = await Promise.all(args.file.map(async (fileName: string) => {
     // Read file
     let srcTxt = null;
 
     try {
-	   srcTxt = await Deno.readTextFile(file);
+	   srcTxt = await Deno.readTextFile(fileName);
     } catch (e) {
-	   console.error(`Failed to open ${file}: ${e}`);
+	   console.error(`Failed to open ${fileName}: ${e}`);
 	   Deno.exit(1);
     }
 
@@ -102,16 +101,13 @@ for (const i in args.file) {
 	   syntax: 'typescript',
     });
 
-    const parseItems: (ModuleItem[] | Statement) = parsed.body;
+    const parsedItems: (ModuleItem[] | Statement) = parsed.body;
+    const parsedInterfaceDefs = parsedItems
+	   .filter((item): item is TsInterfaceDeclaration => {
+		  return item.type === 'TsInterfaceDeclaration';
+	   })
 
-    const defs = parseItems.map((item) => {
-	   // Ensure we have an interface declaration
-	   if (item.type !== 'TsInterfaceDeclaration') {
-		  return undefined;
-	   } else if (item.body.type !== 'TsInterfaceBody') {
-		  return undefined;
-	   }
-
+    const defs: InterfaceDef[] = parsedInterfaceDefs.map((item) => {
 	   return {
 		  name: item.id.value,
 		  properties: item.body.body.map((prop) => {
@@ -150,11 +146,27 @@ for (const i in args.file) {
 			 };
 		  }),
 	   };
-    })
-    // We returned undefined in the map above if we encountered a node that
-    // was not an interface definition, this will occur a lot and is fine, but
-    // we should filter these out now.
-	   .filter((item: any) => item !== undefined);
+    });
+
+    return defs.map((def) => {
+	   const guardName = `is${def.name[0].toUpperCase() + def.name.slice(1)}`;
+
+	   return `\
+/**
+ * Ensures that value is a ${def.name} interface.
+ * @param value To check.
+ * @returns True if value is ${def.name}, false otherwise.
+ */
+function ${guardName}(value: unknown) value is ${def.name} {
+
+}
+`;
+    });
 
     // TODO we now have the interface declaration w everything we need, generate type guard
-}
+}));
+
+const enc = new TextEncoder();
+guards.forEach((guard: string) => {
+    Deno.stdout.write(enc.encode(guard.toString()));
+});
