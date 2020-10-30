@@ -1,6 +1,6 @@
-interface Foo {
-    bar: string
-    foo: number
+interface Iface1 {
+    prop1: string
+    prop2: number
 }
 
-let a = "five";
+let var1 = "five";
