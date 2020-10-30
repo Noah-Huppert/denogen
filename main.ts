@@ -158,12 +158,10 @@ let guards: string[] = await Promise.all(args.file.map(async (fileName: string) 
  * @returns True if value is ${def.name}, false otherwise.
  */
 function ${guardName}(value: unknown) value is ${def.name} {
-
+  // TODO: Write type guards here
 }
 `;
     });
-
-    // TODO we now have the interface declaration w everything we need, generate type guard
 }));
 
 const enc = new TextEncoder();
