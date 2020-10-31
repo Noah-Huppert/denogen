@@ -33,7 +33,7 @@ jobs:
           deno-version: ${{ matrix.deno }} # tests across multiple Deno versions
 
       - name: 🍱 Cache Dependencies
-        run: deno cache main.ts
+        run: deno cache --unstable main.ts
 
       - name: 🧪 Run Tests
         run: deno test -A --unstable
