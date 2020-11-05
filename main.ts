@@ -183,24 +183,40 @@ let guards: string[] = await Promise.all(args.file.map(async (fileName: string) 
 	   // For each type we will generate some custom code
 	   // Currently we only care about: https://github.com/nestdotland/deno_swc/blob/188fb2feb8d6c4f8a663d0f6d49b65f8b8956369/types/options.ts#L1778
 
-	   let checks = []; // Note: the order here matters
+	   let checks = [] as string[]; // Note: the order here matters
 
 
 	//    def.properties.
-	   
-	function foo(props: object){
-		props.forEach((prop) => {
-		   switch (prop.kind) {
-				case 'number':
-					checks.push(`${guardName}(${prop})`);
-					break;
-				case 'object':
+	function bar(prop: InterfaceProp){
+		switch (prop.kind) {
+			case 'number':
+				checks.push(`${guardName}(${prop})`);
+				break;
+			case 'object':
+				// foo(prop);
+				if (prop.kind[0] != null) {
 					foo(prop);
-					break;
-		   }
+				} else {
+					baz(prop);
+				}
+				break;
+	   }
+	}
+	   
+	function foo(props: InterfaceProp[]){
+		props.forEach((prop) => {
+		 bar(prop);
 	   })
 	}
+	function baz(props: object){
+		//assuming that every object has been recursively gone into and made into interfaceprops
+	   for (const propName in props) {
+		   if(props[propName]) bar(props[propName] as InterfaceProp);
+	   }
+	}
+
 	foo(def.properties);
+	console.log(checks);
 
 	   return `\
 /**
