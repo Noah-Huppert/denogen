@@ -185,6 +185,23 @@ let guards: string[] = await Promise.all(args.file.map(async (fileName: string) 
 
 	   let checks = []; // Note: the order here matters
 
+
+	//    def.properties.
+	   
+	function foo(props: object){
+		props.forEach((prop) => {
+		   switch (prop.kind) {
+				case 'number':
+					checks.push(`${guardName}(${prop})`);
+					break;
+				case 'object':
+					foo(prop);
+					break;
+		   }
+	   })
+	}
+	foo(def.properties);
+
 	   return `\
 /**
  * Ensures that value is a ${def.name} interface.
