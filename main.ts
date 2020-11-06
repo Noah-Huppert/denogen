@@ -107,6 +107,62 @@ interface InterfaceProp {
   kind?: string;
 }
 
+/**
+ * Represents an interface for which to generate type guards. Provides functions
+ * and methods for processing.
+ */
+class Interface implements InterfaceDef {
+  name: string;
+  properties: InterfaceProp[];
+
+  /**
+	* Create an Interface from a TsInterfaceDeclaration SWC AST node.
+	* @param node SWC AST node from which to create the Interface.
+	* @throws {string} If node cannot be used to create an Interface.
+	*/
+  constructor(node: TsInterfaceDeclaration) {
+    // Set the interface name
+    this.name = node.id.value;
+
+    // Parse properties
+    this.properties = node.body.body.map((prop) => {
+      // Check is a property signature
+      if (prop.type !== "TsPropertySignature") {
+        throw `encountered a TsInterfaceBody item of type = '${prop.type}' but expected 'TsPropertySignature'`;
+      }
+
+      // Ensure we can get the property name
+      if (prop.key.type !== "Identifier") {
+        throw `encountered a TsPropertySignature with a key.type = ${prop.key.type} but expected 'Identifier'`;
+      }
+
+      // Get type of property if there is an annotation
+      let kind = undefined;
+
+      if (prop.typeAnnotation !== null && prop.typeAnnotation !== undefined) {
+        // What type of type annotation?
+        const annotation = prop.typeAnnotation.typeAnnotation;
+
+        if (annotation.type === "TsKeywordType") {
+          // The compiler seems to think annotation could be a TsImportType even
+          // though the only type with .type === "TsKeywordType" is a TsKeywordType
+          // so we will manually cast.
+          kind = (annotation as TsKeywordType).kind;
+        } else {
+          // Throw errors when we get a type we haven't accounted for
+          // yet so we can add support in the future.
+          throw `interface property type annotation type '${prop.typeAnnotation.type}' is not supported`;
+        }
+      }
+
+      return {
+        name: prop.key.value,
+        kind: kind,
+      };
+    });
+  }
+}
+
 let guards: string[] = await Promise.all(
   args.file.map(async (fileName: string) => {
     // Read file
@@ -136,46 +192,8 @@ let guards: string[] = await Promise.all(
         return item.type === "TsInterfaceDeclaration";
       });
 
-    const defs: InterfaceDef[] = parsedInterfaceDefs.map((item) => {
-      return {
-        name: item.id.value,
-        properties: item.body.body.map((prop) => {
-          // Check is a property signature
-          if (prop.type !== "TsPropertySignature") {
-            throw `encountered a TsInterfaceBody item of type = '${prop.type}' but expected 'TsPropertySignature'`;
-          }
-
-          // Ensure we can get the property name
-          if (prop.key.type !== "Identifier") {
-            throw `encountered a TsPropertySignature with a key.type = ${prop.key.type} but expected 'Identifier'`;
-          }
-
-          // Get type of property if there is an annotation
-          let kind = undefined;
-
-          if (
-            prop.typeAnnotation !== null &&
-            prop.typeAnnotation !== undefined
-          ) {
-            // What type of type annotation?
-            const annotation = prop.typeAnnotation.typeAnnotation;
-            let kind = null;
-
-            if (annotation.type === "TsKeywordType") {
-              kind = (annotation as TsKeywordType).kind;
-            } else {
-              // Throw errors when we get a type we haven't accounted for
-              // yet so we can add support in the future.
-              throw `interface property type annotation type '${prop.typeAnnotation.type}' is not supported`;
-            }
-          }
-
-          return {
-            name: prop.key.value,
-            kind: kind,
-          };
-        }),
-      };
+    const defs: InterfaceDef[] = parsedInterfaceDefs.map((node) => {
+      return new Interface(node);
     });
 
     return defs.map((def) => {
