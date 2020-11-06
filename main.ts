@@ -3,10 +3,10 @@ import { parse as parseFlags } from "https://deno.land/std/flags/mod.ts";
 import { parse as parseTs } from "https://github.com/nestdotland/deno_swc/raw/master/mod.ts";
 import {
   ModuleItem,
+  Program,
   Statement,
   TsInterfaceDeclaration,
   TsKeywordType,
-  Program,
 } from "https://github.com/nestdotland/deno_swc/raw/master/types/options.ts";
 
 // Parse files and generate guards
@@ -95,7 +95,7 @@ export class Interface implements InterfaceDef {
         const annotation = prop.typeAnnotation.typeAnnotation;
 
         if (annotation.type === "TsKeywordType") {
-          // The compiler seems to think annotation could be a TsImportType 
+          // The compiler seems to think annotation could be a TsImportType
           // or a TsKeywordType even though the only type with
           // .type === "TsKeywordType" is a TsKeywordType so we will manually cast.
           kind = (annotation as TsKeywordType).kind;
@@ -165,28 +165,26 @@ export class Interface implements InterfaceDef {
       interfaces: interfaces,
     };
   }
-  
 }
 
 // If running in the command line
 if (import.meta.main === true) {
-  
-// Parse command line arguments
-const args = parseFlags(Deno.args, {
-  alias: {
-    "h": "help",
-    "f": "file",
-    "o": "output",
-    "d": "debug",
-  },
-  default: {
-    "output": "<FILE>-guard.ts",
-    "debug": [],
-  },
-});
+  // Parse command line arguments
+  const args = parseFlags(Deno.args, {
+    alias: {
+      "h": "help",
+      "f": "file",
+      "o": "output",
+      "d": "debug",
+    },
+    default: {
+      "output": "<FILE>-guard.ts",
+      "debug": [],
+    },
+  });
 
-if (args.help === true) {
-  console.log(`deno-guard - automatically generates Typescript guards
+  if (args.help === true) {
+    console.log(`deno-guard - automatically generates Typescript guards
 
 USAGE
 
@@ -208,64 +206,64 @@ BEHAVIOR
     The checker will be a function who's name is: "is<Type name>" where the first
     letter of the type name is capitalized.
 `);
-  Deno.exit(0);
-}
+    Deno.exit(0);
+  }
 
-if (typeof args.file === "string") {
-  args.file = [args.file];
-}
+  if (typeof args.file === "string") {
+    args.file = [args.file];
+  }
 
-if (args.file === undefined || args.file.length === 0) {
-  console.error("At least one file must be specified via the -f FILE flag.");
-  Deno.exit(1);
-}
+  if (args.file === undefined || args.file.length === 0) {
+    console.error("At least one file must be specified via the -f FILE flag.");
+    Deno.exit(1);
+  }
 
-let lostFiles: string[] = await Promise.all(args.file
-  .map(async (filePath: string) => {
-    if (await fsExists(filePath) === false) {
-      return filePath;
-    }
-  }));
-lostFiles = lostFiles.filter((v: string) => v !== undefined);
+  let lostFiles: string[] = await Promise.all(args.file
+    .map(async (filePath: string) => {
+      if (await fsExists(filePath) === false) {
+        return filePath;
+      }
+    }));
+  lostFiles = lostFiles.filter((v: string) => v !== undefined);
 
-if (lostFiles.length > 0) {
-  console.error(`Input file(s) not found: ${lostFiles.join(",")}`);
-  Deno.exit(1);
-}
+  if (lostFiles.length > 0) {
+    console.error(`Input file(s) not found: ${lostFiles.join(",")}`);
+    Deno.exit(1);
+  }
 
-if (typeof args.debug === "string") {
-  args.debug = [args.debug];
-}
+  if (typeof args.debug === "string") {
+    args.debug = [args.debug];
+  }
 
-let guards: string[] = await Promise.all(
-  args.file.map(async (fileName: string) => {
-    // Read file
-    let srcTxt = null;
+  let guards: string[] = await Promise.all(
+    args.file.map(async (fileName: string) => {
+      // Read file
+      let srcTxt = null;
 
-    try {
-      srcTxt = await Deno.readTextFile(fileName);
-    } catch (e) {
-      console.error(`Failed to open ${fileName}: ${e}`);
-      Deno.exit(1);
-    }
+      try {
+        srcTxt = await Deno.readTextFile(fileName);
+      } catch (e) {
+        console.error(`Failed to open ${fileName}: ${e}`);
+        Deno.exit(1);
+      }
 
-    // Parse interface declarations
-    const srcInterfaces = Interface.FromSrc(srcTxt);
-    
-    if (args.debug.indexOf("ast") !== -1) {
-      console.log(fileName);
-      console.log(JSON.stringify(srcInterfaces.ast, null, 4));
-    }
+      // Parse interface declarations
+      const srcInterfaces = Interface.FromSrc(srcTxt);
 
-    return srcInterfaces.interfaces.map((def) => {
-      const guardName = `is${def.name[0].toUpperCase() + def.name.slice(1)}`;
+      if (args.debug.indexOf("ast") !== -1) {
+        console.log(fileName);
+        console.log(JSON.stringify(srcInterfaces.ast, null, 4));
+      }
 
-      // For each type we will generate some custom code
-      // Currently we only care about: https://github.com/nestdotland/deno_swc/blob/188fb2feb8d6c4f8a663d0f6d49b65f8b8956369/types/options.ts#L1778
+      return srcInterfaces.interfaces.map((def) => {
+        const guardName = `is${def.name[0].toUpperCase() + def.name.slice(1)}`;
 
-      let checks = []; // Note: the order here matters
+        // For each type we will generate some custom code
+        // Currently we only care about: https://github.com/nestdotland/deno_swc/blob/188fb2feb8d6c4f8a663d0f6d49b65f8b8956369/types/options.ts#L1778
 
-      return `\
+        let checks = []; // Note: the order here matters
+
+        return `\
 /**
  * Ensures that value is a ${def.name} interface.
  * @param value To check.
@@ -275,12 +273,12 @@ function ${guardName}(value: unknown) value is ${def.name} {
   // TODO: Write type guards here
 }
 `;
-    });
-  }),
-);
+      });
+    }),
+  );
 
-const enc = new TextEncoder();
-guards.forEach((guard: string) => {
-  Deno.stdout.write(enc.encode(guard.toString()));
-});
+  const enc = new TextEncoder();
+  guards.forEach((guard: string) => {
+    Deno.stdout.write(enc.encode(guard.toString()));
+  });
 }

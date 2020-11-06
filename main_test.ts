@@ -1,10 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.75.0/testing/asserts.ts";
 
-import {
-  Interface,
-  InterfaceDef,
-  InterfaceProp,
-} from "./main.ts";
+import { Interface, InterfaceDef, InterfaceProp } from "./main.ts";
 
 Deno.test("Interface.FromSrc()", () => {
   const actual = Interface.FromSrc(`\
@@ -32,10 +28,10 @@ interface Foo {
           {
             name: "prop3",
             kind: undefined,
-          }
-        ]
-      }
+          },
+        ],
+      },
     ],
-    "Expected interface definitions to match"
+    "Expected interface definitions to match",
   );
 });
