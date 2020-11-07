@@ -235,6 +235,7 @@ BEHAVIOR
     args.debug = [args.debug];
   }
 
+  // Generate type guards
   let guards: string[] = await Promise.all(
     args.file.map(async (fileName: string) => {
       // Read file
@@ -255,6 +256,7 @@ BEHAVIOR
         console.log(JSON.stringify(srcInterfaces.ast, null, 4));
       }
 
+      // Generate code
       return srcInterfaces.interfaces.map((def) => {
         const guardName = `is${def.name[0].toUpperCase() + def.name.slice(1)}`;
 
