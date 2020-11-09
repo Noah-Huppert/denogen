@@ -261,7 +261,29 @@ BEHAVIOR
         // For each type we will generate some custom code
         // Currently we only care about: https://github.com/nestdotland/deno_swc/blob/188fb2feb8d6c4f8a663d0f6d49b65f8b8956369/types/options.ts#L1778
 
-        let checks = []; // Note: the order here matters
+        let checks = [] as any; // Note: the order here matters
+
+        let requiredImports = new Set();
+
+        def.properties.forEach((prop) => {
+          switch (prop.kind) {
+            case "number":
+              checks.push(`isNumber(${prop.name})`);
+              requiredImports.add("isNumber");
+              break;
+            case "string":
+              checks.push(`isString(${prop.name})`);
+              requiredImports.add("isString");
+              break;
+            case "boolean":
+              checks.push(`isBoolean(${prop.name})`);
+              requiredImports.add("isBoolean");
+              break;
+            case "object":
+              //uhhhhhhh
+              break;
+          }
+        });
 
         return `\
 /**
@@ -269,7 +291,10 @@ BEHAVIOR
  * @param value To check.
  * @returns True if value is ${def.name}, false otherwise.
  */
+
+ ${[...requiredImports].map((value) => `import ${value};`).join("\n")}
 function ${guardName}(value: unknown) value is ${def.name} {
+  ${checks.join(";\n  ")};
   // TODO: Write type guards here
 }
 `;
