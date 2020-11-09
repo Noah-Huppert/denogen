@@ -284,7 +284,7 @@ BEHAVIOR
               break;
           }
         });
-        
+
         return `\
 /**
  * Ensures that value is a ${def.name} interface.
@@ -292,16 +292,14 @@ BEHAVIOR
  * @returns True if value is ${def.name}, false otherwise.
  */
 
- ${
- [...requiredImports].map(value => `import ${value};`).join("\n")
- }
+ ${[...requiredImports].map((value) => `import ${value};`).join("\n")}
 function ${guardName}(value: unknown) value is ${def.name} {
-  ${checks.join(';\n  ')};
+  ${checks.join(";\n  ")};
   // TODO: Write type guards here
 }
 `;
       });
-    })
+    }),
   );
 
   const enc = new TextEncoder();
